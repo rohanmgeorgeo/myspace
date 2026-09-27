@@ -1,8 +1,8 @@
 import { LandmarkIcon } from "lucide-react";
 
-import { ComingSoonButton } from "@/components/coming-soon-button";
 import { EmptyState } from "@/components/empty-state";
 import { AccountIcon } from "@/components/money/account-icon";
+import { AddAccountDialog } from "@/components/money/add-account-dialog";
 import { Section } from "@/components/section";
 import { formatAccountType, formatMoney } from "@/lib/format";
 import type { Account } from "@/lib/supabase/types";
@@ -12,9 +12,7 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
     <Section
       title="Accounts"
       description="Where your money is stored — bank, cash, wallet or other."
-      action={
-        accounts.length > 0 ? <ComingSoonButton label="Add account" /> : null
-      }
+      action={accounts.length > 0 ? <AddAccountDialog /> : null}
     >
       {accounts.length === 0 ? (
         <EmptyState
@@ -22,7 +20,7 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
           title="No accounts yet"
           description="Add your first account to start tracking how much you have and where it lives."
         >
-          <ComingSoonButton label="Add account" variant="outline" />
+          <AddAccountDialog variant="outline" />
         </EmptyState>
       ) : (
         <ul className="divide-y divide-border">

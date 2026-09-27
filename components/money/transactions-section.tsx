@@ -87,7 +87,7 @@ function TransactionRow({
         )}
       >
         {meta.prefix}
-        {formatMoney(transaction.amount, account?.currency ?? "USD")}
+        {formatMoney(transaction.amount, account?.currency)}
       </p>
     </div>
   );

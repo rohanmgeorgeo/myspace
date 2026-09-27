@@ -77,7 +77,15 @@ export type Database = {
       };
       accounts: {
         Row: Account;
-        Insert: Omit<Account, Generated> & Partial<Pick<Account, "id">>;
+        /**
+         * `starting_balance` also accepts a decimal string, which is how the
+         * app writes money: the validated string is handed to PostgREST and
+         * cast to `numeric(14,2)` without a JavaScript number in between.
+         */
+        Insert: Omit<Account, Generated | "starting_balance"> &
+          Partial<Pick<Account, "id">> & {
+            starting_balance: number | string;
+          };
         Update: Partial<Omit<Account, "id" | "user_id">>;
         Relationships: [];
       };
