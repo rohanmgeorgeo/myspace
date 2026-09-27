@@ -4,6 +4,7 @@ import {
   toMinorUnits,
   MONEY_MAX_DECIMAL_PLACES,
 } from "@/lib/money/decimal";
+import { isUuid } from "@/lib/money/ids";
 import {
   TRANSACTION_TYPES,
   type TransactionType,
@@ -65,8 +66,6 @@ type ParseField<T> = { ok: true; value: T } | { ok: false; error: string };
 
 /** A transaction amount is always positive; `type` carries the direction. */
 const AMOUNT_PATTERN = moneyPattern({ allowNegative: false });
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export function parseTransactionTypeFormValue(
@@ -121,7 +120,7 @@ export function parseAccountIdFormValue(
 ): ParseField<string> {
   const value = raw.trim();
 
-  if (!UUID_PATTERN.test(value)) {
+  if (!isUuid(value)) {
     return { ok: false, error: `Choose ${what}.` };
   }
 

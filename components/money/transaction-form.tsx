@@ -10,18 +10,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_CURRENCY, getCurrencySymbol } from "@/lib/format";
-import { createTransaction } from "@/lib/money/transaction-actions";
+import {
+  createTransaction,
+  updateTransaction,
+} from "@/lib/money/transaction-actions";
+import { fromMinorUnits, toMinorUnits } from "@/lib/money/decimal";
 import {
   CATEGORY_NAME_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
   initialTransactionFormState,
 } from "@/lib/money/transaction-form";
-import type { Account, Category, TransactionType } from "@/lib/supabase/types";
+import type {
+  Account,
+  Category,
+  Transaction,
+  TransactionType,
+} from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 type TransactionFormProps = {
   accounts: Pick<Account, "id" | "name">[];
   categories: Pick<Category, "id" | "name" | "type">[];
+  /** Present when editing an existing transaction. */
+  transaction?: Transaction;
   onCreated: (message: string) => void;
   onCancel: () => void;
 };
@@ -39,7 +50,7 @@ function todayAsLocalDate(): string {
 }
 
 /**
- * Add-transaction form.
+ * Add / edit transaction form.
  *
  * Inputs are controlled so a rejected submission keeps what the user typed, and
  * the server action validates everything again — this is only the UI.
@@ -47,23 +58,46 @@ function todayAsLocalDate(): string {
 export function TransactionForm({
   accounts,
   categories,
+  transaction,
   onCreated,
   onCancel,
 }: TransactionFormProps) {
+  const isEditing = Boolean(transaction);
+
   const [state, formAction, isPending] = useActionState(
-    createTransaction,
+    isEditing ? updateTransaction : createTransaction,
     initialTransactionFormState,
   );
 
-  const [type, setType] = useState<TransactionType>("expense");
-  const [amount, setAmount] = useState("");
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [transferAccountId, setTransferAccountId] = useState(
-    () => accounts.find((account) => account.id !== accounts[0]?.id)?.id ?? "",
+  const [type, setType] = useState<TransactionType>(
+    transaction?.type ?? "expense",
   );
-  const [category, setCategory] = useState("");
-  const [transactionDate, setTransactionDate] = useState(todayAsLocalDate);
-  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState(() =>
+    transaction ? fromMinorUnits(toMinorUnits(transaction.amount)) : "",
+  );
+  const [accountId, setAccountId] = useState(
+    transaction?.account_id ?? accounts[0]?.id ?? "",
+  );
+  const [transferAccountId, setTransferAccountId] = useState(
+    () =>
+      transaction?.transfer_account_id ??
+      accounts.find(
+        (account) =>
+          account.id !== (transaction?.account_id ?? accounts[0]?.id),
+      )?.id ??
+      "",
+  );
+  const [category, setCategory] = useState(
+    () =>
+      categories.find((option) => option.id === transaction?.category_id)
+        ?.name ?? "",
+  );
+  const [transactionDate, setTransactionDate] = useState(
+    () => transaction?.transaction_date ?? todayAsLocalDate(),
+  );
+  const [description, setDescription] = useState(
+    transaction?.description ?? "",
+  );
 
   useEffect(() => {
     if (state.status === "success") {
@@ -80,6 +114,10 @@ export function TransactionForm({
 
   return (
     <form action={formAction} aria-busy={isPending} className="grid gap-5">
+      {/* The id is validated and ownership is re-checked on the server. */}
+      {transaction ? (
+        <input type="hidden" name="id" value={transaction.id} />
+      ) : null}
       <div className="grid gap-2">
         <span className="text-sm leading-none font-medium">Type</span>
         <div
@@ -306,7 +344,11 @@ export function TransactionForm({
         </Button>
         <Button type="submit" disabled={isPending}>
           {isPending ? <Loader2Icon className="animate-spin" /> : null}
-          {isPending ? "Adding…" : "Add transaction"}
+          {isPending
+            ? "Saving…"
+            : isEditing
+              ? "Save changes"
+              : "Add transaction"}
         </Button>
       </div>
     </form>

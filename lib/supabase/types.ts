@@ -86,7 +86,9 @@ export type Database = {
           Partial<Pick<Account, "id">> & {
             starting_balance: number | string;
           };
-        Update: Partial<Omit<Account, "id" | "user_id">>;
+        Update: Partial<Omit<Account, "id" | "user_id" | "starting_balance">> & {
+          starting_balance?: number | string;
+        };
         Relationships: [];
       };
       categories: {
@@ -110,7 +112,11 @@ export type Database = {
           Partial<Pick<Transaction, "id" | "transfer_account_id">> & {
             amount: number | string;
           };
-        Update: Partial<Omit<Transaction, "id" | "user_id">>;
+        Update: Partial<
+          Omit<Transaction, "id" | "user_id" | "amount">
+        > & {
+          amount?: number | string;
+        };
         Relationships: [];
       };
     };

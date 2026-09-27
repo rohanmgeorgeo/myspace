@@ -2,12 +2,31 @@ import { LandmarkIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
 import { AccountIcon } from "@/components/money/account-icon";
+import { AccountRowActions } from "@/components/money/account-row-actions";
 import { AddAccountDialog } from "@/components/money/add-account-dialog";
 import { Section } from "@/components/section";
 import { formatAccountType, formatMinorUnits } from "@/lib/format";
 import type { AccountBalance } from "@/lib/money/balances";
+import type { Transaction } from "@/lib/supabase/types";
 
-export function AccountsSection({ balances }: { balances: AccountBalance[] }) {
+type AccountsSectionProps = {
+  balances: AccountBalance[];
+  /** Only used to tell whether an account can be deleted safely. */
+  transactions: Transaction[];
+};
+
+export function AccountsSection({
+  balances,
+  transactions,
+}: AccountsSectionProps) {
+  const referencedAccountIds = new Set<string>();
+  for (const transaction of transactions) {
+    referencedAccountIds.add(transaction.account_id);
+    if (transaction.transfer_account_id) {
+      referencedAccountIds.add(transaction.transfer_account_id);
+    }
+  }
+
   return (
     <Section
       title="Accounts"
@@ -40,11 +59,20 @@ export function AccountsSection({ balances }: { balances: AccountBalance[] }) {
                   </p>
                 </div>
               </div>
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-medium tabular-nums">
-                  {formatMinorUnits(minorUnits, account.currency)}
-                </p>
-                <p className="text-xs text-muted-foreground">Current balance</p>
+              <div className="flex shrink-0 items-center gap-2">
+                <div className="text-right">
+                  <p className="text-sm font-medium tabular-nums">
+                    {formatMinorUnits(minorUnits, account.currency)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Current balance
+                  </p>
+                </div>
+                <AccountRowActions
+                  account={account}
+                  minorUnits={minorUnits}
+                  hasTransactions={referencedAccountIds.has(account.id)}
+                />
               </div>
             </li>
           ))}

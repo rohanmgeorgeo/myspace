@@ -1,9 +1,7 @@
 "use client";
 
-import { Fragment, useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Fragment } from "react";
 import { PlusIcon } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +18,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useActionDialog } from "@/hooks/use-action-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export type FormDialogHelpers = {
@@ -27,6 +26,57 @@ export type FormDialogHelpers = {
   onCreated: (message: string) => void;
   onCancel: () => void;
 };
+
+type FormDialogPanelProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+};
+
+/**
+ * The panel itself, without a trigger.
+ *
+ * Desktop gets a centred dialog; small screens get a bottom sheet, which is far
+ * more comfortable with a keyboard open. Callers own the trigger — which lets a
+ * row action menu open the same panel.
+ */
+export function FormDialogPanel({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+}: FormDialogPanelProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="max-h-[90svh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{title}</SheetTitle>
+            <SheetDescription>{description}</SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-8">{children}</div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        {children}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 type ResponsiveFormDialogProps = {
   title: string;
@@ -38,11 +88,10 @@ type ResponsiveFormDialogProps = {
 };
 
 /**
- * Trigger button plus the panel that hosts a form.
+ * Trigger button plus the panel that hosts an "add" form.
  *
- * Desktop gets a centred dialog; small screens get a bottom sheet, which is far
- * more comfortable with a keyboard open. The form is remounted on every close
- * so it reopens with empty fields and no stale validation errors.
+ * The form is remounted on every close so it reopens with empty fields and no
+ * stale validation errors.
  */
 export function ResponsiveFormDialog({
   title,
@@ -52,83 +101,33 @@ export function ResponsiveFormDialog({
   triggerClassName,
   renderForm,
 }: ResponsiveFormDialogProps) {
-  const isMobile = useIsMobile();
-  const router = useRouter();
-
-  const [open, setOpen] = useState(false);
-  const [formVersion, setFormVersion] = useState(0);
-
-  const close = useCallback(() => {
-    setOpen(false);
-    setFormVersion((version) => version + 1);
-  }, []);
-
-  const handleCreated = useCallback(
-    (message: string) => {
-      close();
-      toast.success(message);
-      // Server Components re-render, so the list and the cards update at once.
-      router.refresh();
-    },
-    [close, router],
-  );
-
-  function handleOpenChange(next: boolean) {
-    if (next) {
-      setOpen(true);
-      return;
-    }
-
-    close();
-  }
-
-  const trigger = (
-    <Button
-      type="button"
-      variant={triggerVariant}
-      className={triggerClassName}
-      onClick={() => setOpen(true)}
-    >
-      <PlusIcon />
-      {triggerLabel}
-    </Button>
-  );
-
-  const form = (
-    <Fragment key={formVersion}>
-      {renderForm({ onCreated: handleCreated, onCancel: close })}
-    </Fragment>
-  );
-
-  if (isMobile) {
-    return (
-      <>
-        {trigger}
-        <Sheet open={open} onOpenChange={handleOpenChange}>
-          <SheetContent side="bottom" className="max-h-[90svh] overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>{title}</SheetTitle>
-              <SheetDescription>{description}</SheetDescription>
-            </SheetHeader>
-            <div className="px-4 pb-8">{form}</div>
-          </SheetContent>
-        </Sheet>
-      </>
-    );
-  }
+  const dialog = useActionDialog();
 
   return (
     <>
-      {trigger}
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
-          </DialogHeader>
-          {form}
-        </DialogContent>
-      </Dialog>
+      <Button
+        type="button"
+        variant={triggerVariant}
+        className={triggerClassName}
+        onClick={dialog.openDialog}
+      >
+        <PlusIcon />
+        {triggerLabel}
+      </Button>
+
+      <FormDialogPanel
+        open={dialog.open}
+        onOpenChange={dialog.handleOpenChange}
+        title={title}
+        description={description}
+      >
+        <Fragment key={dialog.version}>
+          {renderForm({
+            onCreated: dialog.notifySuccess,
+            onCancel: dialog.close,
+          })}
+        </Fragment>
+      </FormDialogPanel>
     </>
   );
 }

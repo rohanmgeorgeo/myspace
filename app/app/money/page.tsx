@@ -71,7 +71,7 @@ export default async function MoneyPage() {
         />
       </div>
 
-      <AccountsSection balances={balances} />
+      <AccountsSection balances={balances} transactions={transactions} />
 
       <TransactionsSection
         transactions={transactions.slice(0, RECENT_TRANSACTIONS_LIMIT)}

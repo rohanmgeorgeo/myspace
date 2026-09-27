@@ -55,3 +55,18 @@ export function toMinorUnits(value: number | string): number {
 
   return isNegative ? -minor : minor;
 }
+
+/**
+ * Integer minor units back to a plain decimal string: `1250050` → `"12500.50"`.
+ *
+ * Used to prefill the edit forms. Like `toMinorUnits` this is integer-only
+ * arithmetic, so the round trip is exact.
+ */
+export function fromMinorUnits(minorUnits: number): string {
+  const isNegative = minorUnits < 0;
+  const absolute = Math.abs(minorUnits);
+  const whole = Math.floor(absolute / MONEY_MINOR_UNITS_PER_MAJOR);
+  const fraction = absolute % MONEY_MINOR_UNITS_PER_MAJOR;
+
+  return `${isNegative ? "-" : ""}${whole}.${String(fraction).padStart(2, "0")}`;
+}

@@ -10,40 +10,53 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_CURRENCY, getCurrencySymbol } from "@/lib/format";
-import { createAccount } from "@/lib/money/account-actions";
+import { createAccount, updateAccount } from "@/lib/money/account-actions";
+import { fromMinorUnits, toMinorUnits } from "@/lib/money/decimal";
 import {
   ACCOUNT_NAME_MAX_LENGTH,
   ACCOUNT_TYPE_OPTIONS,
   initialAccountFormState,
 } from "@/lib/money/account-form";
-import type { AccountType } from "@/lib/supabase/types";
+import type { Account, AccountType } from "@/lib/supabase/types";
 
 type AccountFormProps = {
-  /** Called once the server confirms the account was created. */
+  /** Present when editing an existing account. */
+  account?: Account;
+  /** Called once the server confirms the change was saved. */
   onCreated: (message: string) => void;
   onCancel: () => void;
 };
 
 /**
- * Add-account form.
+ * Add / edit account form.
  *
  * Inputs are controlled so a rejected submission never loses what the user
- * typed. The server action validates everything again and is the only source
- * of truth — these fields are just the UI.
+ * typed. The server action validates everything again and is the only source of
+ * truth — these fields are just the UI.
  */
-export function AccountForm({ onCreated, onCancel }: AccountFormProps) {
+export function AccountForm({
+  account,
+  onCreated,
+  onCancel,
+}: AccountFormProps) {
+  const isEditing = Boolean(account);
+
   const [state, formAction, isPending] = useActionState(
-    createAccount,
+    isEditing ? updateAccount : createAccount,
     initialAccountFormState,
   );
 
-  const [name, setName] = useState("");
-  const [type, setType] = useState<AccountType>(ACCOUNT_TYPE_OPTIONS[0].value);
-  const [balance, setBalance] = useState("");
+  const [name, setName] = useState(account?.name ?? "");
+  const [type, setType] = useState<AccountType>(
+    account?.type ?? ACCOUNT_TYPE_OPTIONS[0].value,
+  );
+  const [balance, setBalance] = useState(() =>
+    account ? fromMinorUnits(toMinorUnits(account.starting_balance)) : "",
+  );
 
   useEffect(() => {
     if (state.status === "success") {
-      onCreated(state.message ?? "Account added.");
+      onCreated(state.message ?? "Account saved.");
     }
   }, [state, onCreated]);
 
@@ -51,6 +64,8 @@ export function AccountForm({ onCreated, onCancel }: AccountFormProps) {
 
   return (
     <form action={formAction} aria-busy={isPending} className="grid gap-5">
+      {/* The id is validated and ownership is re-checked on the server. */}
+      {account ? <input type="hidden" name="id" value={account.id} /> : null}
       <div className="grid gap-2">
         <Label htmlFor="account-name">Account name</Label>
         <Input
@@ -100,7 +115,9 @@ export function AccountForm({ onCreated, onCancel }: AccountFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="account-balance">Current balance</Label>
+        <Label htmlFor="account-balance">
+          {isEditing ? "Opening balance" : "Current balance"}
+        </Label>
         <div className="relative">
           <span
             aria-hidden
@@ -124,7 +141,11 @@ export function AccountForm({ onCreated, onCancel }: AccountFormProps) {
         <FormFieldFeedback
           id="account-balance-feedback"
           error={errors?.startingBalance}
-          hint="What the account holds today. Zero and negative values are allowed."
+          hint={
+            isEditing
+              ? "Changing the opening balance shifts this account's calculated current balance by the same amount."
+              : "What the account holds today. Zero and negative values are allowed."
+          }
         />
       </div>
 
@@ -153,7 +174,11 @@ export function AccountForm({ onCreated, onCancel }: AccountFormProps) {
         </Button>
         <Button type="submit" disabled={isPending}>
           {isPending ? <Loader2Icon className="animate-spin" /> : null}
-          {isPending ? "Adding…" : "Add account"}
+          {isPending
+            ? "Saving…"
+            : isEditing
+              ? "Save changes"
+              : "Add account"}
         </Button>
       </div>
     </form>

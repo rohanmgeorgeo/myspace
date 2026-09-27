@@ -2,6 +2,7 @@ import { ReceiptTextIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
 import { AddTransactionDialog } from "@/components/money/add-transaction-dialog";
+import { TransactionRowActions } from "@/components/money/transaction-row-actions";
 import { TRANSACTION_META } from "@/components/money/transaction-meta";
 import { Section } from "@/components/section";
 import { formatDate, formatMoneyValue } from "@/lib/format";
@@ -80,6 +81,8 @@ export function TransactionsSection({
                     ? (categoryNamesById.get(transaction.category_id) ?? null)
                     : null
                 }
+                accounts={dialogAccounts}
+                categories={dialogCategories}
               />
             </li>
           ))}
@@ -94,11 +97,15 @@ function TransactionRow({
   account,
   destination,
   categoryName,
+  accounts,
+  categories,
 }: {
   transaction: Transaction;
   account: Account | null;
   destination: Account | null;
   categoryName: string | null;
+  accounts: Pick<Account, "id" | "name">[];
+  categories: Pick<Category, "id" | "name" | "type">[];
 }) {
   const meta = TRANSACTION_META[transaction.type];
   const Icon = meta.icon;
@@ -125,15 +132,22 @@ function TransactionRow({
           </p>
         </div>
       </div>
-      <p
-        className={cn(
-          "shrink-0 text-sm font-medium tabular-nums",
-          meta.amountClassName,
-        )}
-      >
-        {meta.prefix}
-        {formatMoneyValue(transaction.amount, account?.currency)}
-      </p>
+      <div className="flex shrink-0 items-center gap-1">
+        <p
+          className={cn(
+            "text-sm font-medium tabular-nums",
+            meta.amountClassName,
+          )}
+        >
+          {meta.prefix}
+          {formatMoneyValue(transaction.amount, account?.currency)}
+        </p>
+        <TransactionRowActions
+          transaction={transaction}
+          accounts={accounts}
+          categories={categories}
+        />
+      </div>
     </div>
   );
 }

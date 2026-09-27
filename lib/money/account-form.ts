@@ -11,6 +11,13 @@ import { ACCOUNT_TYPES, type AccountType } from "@/lib/supabase/types";
 
 export const ACCOUNT_NAME_MAX_LENGTH = 80;
 
+/**
+ * Shown when deletion is refused because transactions still reference the
+ * account (as source or transfer destination).
+ */
+export const ACCOUNT_HAS_TRANSACTIONS_MESSAGE =
+  "This account has transactions. Delete or move those transactions before deleting the account.";
+
 /** `numeric(14, 2)` in Postgres — 14 digits in total, 2 of them decimals. */
 export const BALANCE_MAX_INTEGER_DIGITS = 12;
 export const BALANCE_MAX_DECIMAL_PLACES = 2;
