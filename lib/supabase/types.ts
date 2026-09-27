@@ -98,8 +98,18 @@ export type Database = {
       };
       transactions: {
         Row: Transaction;
-        Insert: Omit<Transaction, Generated | "transfer_account_id"> &
-          Partial<Pick<Transaction, "id" | "transfer_account_id">>;
+        /**
+         * `amount` also accepts a decimal string, which is how the app writes
+         * money: the validated string goes straight to `numeric(14,2)` without
+         * a JavaScript number in between.
+         */
+        Insert: Omit<
+          Transaction,
+          Generated | "transfer_account_id" | "amount"
+        > &
+          Partial<Pick<Transaction, "id" | "transfer_account_id">> & {
+            amount: number | string;
+          };
         Update: Partial<Omit<Transaction, "id" | "user_id">>;
         Relationships: [];
       };

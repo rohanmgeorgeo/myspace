@@ -4,17 +4,17 @@ import { EmptyState } from "@/components/empty-state";
 import { AccountIcon } from "@/components/money/account-icon";
 import { AddAccountDialog } from "@/components/money/add-account-dialog";
 import { Section } from "@/components/section";
-import { formatAccountType, formatMoney } from "@/lib/format";
-import type { Account } from "@/lib/supabase/types";
+import { formatAccountType, formatMinorUnits } from "@/lib/format";
+import type { AccountBalance } from "@/lib/money/balances";
 
-export function AccountsSection({ accounts }: { accounts: Account[] }) {
+export function AccountsSection({ balances }: { balances: AccountBalance[] }) {
   return (
     <Section
       title="Accounts"
       description="Where your money is stored — bank, cash, wallet or other."
-      action={accounts.length > 0 ? <AddAccountDialog /> : null}
+      action={balances.length > 0 ? <AddAccountDialog /> : null}
     >
-      {accounts.length === 0 ? (
+      {balances.length === 0 ? (
         <EmptyState
           icon={LandmarkIcon}
           title="No accounts yet"
@@ -24,7 +24,7 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
         </EmptyState>
       ) : (
         <ul className="divide-y divide-border">
-          {accounts.map((account) => (
+          {balances.map(({ account, minorUnits }) => (
             <li
               key={account.id}
               className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
@@ -42,11 +42,9 @@ export function AccountsSection({ accounts }: { accounts: Account[] }) {
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-sm font-medium tabular-nums">
-                  {formatMoney(account.starting_balance, account.currency)}
+                  {formatMinorUnits(minorUnits, account.currency)}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Starting balance
-                </p>
+                <p className="text-xs text-muted-foreground">Current balance</p>
               </div>
             </li>
           ))}

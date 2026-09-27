@@ -1,3 +1,4 @@
+import { MONEY_MINOR_UNITS_PER_MAJOR, toMinorUnits } from "@/lib/money/decimal";
 import type { AccountType } from "@/lib/supabase/types";
 
 /** The currency MySpace records money in for now. Multi-currency comes later. */
@@ -29,10 +30,11 @@ function localeFor(code: string): string {
 }
 
 /**
- * Formats a stored amount for display. Never used to calculate anything —
- * money maths belongs in SQL, not in the UI.
+ * Formats a major-unit value. Private on purpose — callers use
+ * `formatMinorUnits` or `formatMoneyValue` so money never travels as a loose
+ * JavaScript number.
  */
-export function formatMoney(amount: number, currency?: string): string {
+function formatMoney(amount: number, currency?: string): string {
   const code = safeCurrency(currency);
 
   try {
@@ -45,6 +47,27 @@ export function formatMoney(amount: number, currency?: string): string {
   } catch {
     return `${amount.toFixed(2)} ${code}`;
   }
+}
+
+/**
+ * Formats integer minor units (paise) for display.
+ *
+ * Dividing by 100 is presentation only — every money *calculation* happens in
+ * integer minor units — and Intl then renders exactly two decimals.
+ */
+export function formatMinorUnits(
+  minorUnits: number,
+  currency?: string,
+): string {
+  return formatMoney(minorUnits / MONEY_MINOR_UNITS_PER_MAJOR, currency);
+}
+
+/** Formats a single stored value, which PostgREST may return as a string. */
+export function formatMoneyValue(
+  value: number | string,
+  currency?: string,
+): string {
+  return formatMinorUnits(toMinorUnits(value), currency);
 }
 
 /** Just the symbol, e.g. `₹` — used as an input prefix. */

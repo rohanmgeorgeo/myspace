@@ -1,20 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Transaction } from "@/lib/supabase/types";
 
-const DEFAULT_LIMIT = 8;
+/** How many transactions the Money page lists under "Recent transactions". */
+export const RECENT_TRANSACTIONS_LIMIT = 8;
 
-/** Most recent transactions for the signed-in user (RLS scoped). */
-export async function getRecentTransactions(
-  limit: number = DEFAULT_LIMIT,
-): Promise<Transaction[]> {
+/**
+ * Every transaction for the signed-in user, newest first (RLS scoped).
+ *
+ * Account balances need the whole history, so this is intentionally not
+ * limited. If the table ever grows large, the aggregation should move into SQL
+ * (PostgREST cannot group rows without an RPC, which is why it lives in
+ * `lib/money/balances.ts` for now).
+ */
+export async function getTransactions(): Promise<Transaction[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("transactions")
     .select("*")
     .order("transaction_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(`Could not load transactions: ${error.message}`);

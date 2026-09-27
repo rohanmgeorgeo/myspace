@@ -10,17 +10,34 @@ import { TransactionsSection } from "@/components/money/transactions-section";
 import { PageHeading } from "@/components/page-heading";
 import { StatCard } from "@/components/stat-card";
 import { getAccounts } from "@/lib/data/accounts";
-import { getRecentTransactions } from "@/lib/data/transactions";
+import { getCategories } from "@/lib/data/categories";
+import {
+  getTransactions,
+  RECENT_TRANSACTIONS_LIMIT,
+} from "@/lib/data/transactions";
+import { formatMinorUnits } from "@/lib/format";
+import {
+  calculateAccountBalances,
+  currentMonthKey,
+  monthTotals,
+  totalMinorUnits,
+} from "@/lib/money/balances";
 
 export const metadata: Metadata = {
   title: "Money",
 };
 
 export default async function MoneyPage() {
-  const [accounts, transactions] = await Promise.all([
+  const [accounts, transactions, categories] = await Promise.all([
     getAccounts(),
-    getRecentTransactions(),
+    getTransactions(),
+    getCategories(),
   ]);
+
+  const balances = calculateAccountBalances(accounts, transactions);
+  const hasAccounts = accounts.length > 0;
+  const total = totalMinorUnits(balances);
+  const { income, expenses } = monthTotals(transactions, currentMonthKey());
 
   return (
     <>
@@ -32,29 +49,34 @@ export default async function MoneyPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Total balance"
-          value="—"
-          hint="Available once accounts are added."
+          value={hasAccounts ? formatMinorUnits(total) : "—"}
+          hint={
+            hasAccounts
+              ? `Across ${accounts.length} account${accounts.length === 1 ? "" : "s"}`
+              : "Add an account to get started."
+          }
           icon={WalletIcon}
         />
         <StatCard
           label="Income"
-          value="—"
-          hint="No income recorded yet."
+          value={hasAccounts ? formatMinorUnits(income) : "—"}
+          hint={hasAccounts ? "This month" : "No income recorded yet."}
           icon={TrendingUpIcon}
         />
         <StatCard
           label="Expenses"
-          value="—"
-          hint="No expenses recorded yet."
+          value={hasAccounts ? formatMinorUnits(expenses) : "—"}
+          hint={hasAccounts ? "This month" : "No expenses recorded yet."}
           icon={TrendingDownIcon}
         />
       </div>
 
-      <AccountsSection accounts={accounts} />
+      <AccountsSection balances={balances} />
 
       <TransactionsSection
-        transactions={transactions}
+        transactions={transactions.slice(0, RECENT_TRANSACTIONS_LIMIT)}
         accounts={accounts}
+        categories={categories}
       />
     </>
   );
