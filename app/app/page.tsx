@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRightIcon, WalletIcon } from "lucide-react";
 
+import { OpenRouterCard } from "@/components/dashboard/openrouter-card";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeading } from "@/components/page-heading";
 import { Section } from "@/components/section";
@@ -17,14 +18,20 @@ import {
 } from "@/components/ui/card";
 import { getDisplayName } from "@/lib/auth/display-name";
 import { getCurrentProfile, getCurrentUser } from "@/lib/auth/session";
+import { getOpenRouterUsage } from "@/lib/openrouter/usage";
 
 export const metadata: Metadata = {
   title: "Home",
 };
 
 export default async function HomePage() {
-  const user = await getCurrentUser();
-  const profile = await getCurrentProfile();
+  // Independent reads, so they run together rather than one after another.
+  const [user, profile, openRouterUsage] = await Promise.all([
+    getCurrentUser(),
+    getCurrentProfile(),
+    getOpenRouterUsage(),
+  ]);
+
   const displayName = getDisplayName(user, profile);
 
   return (
@@ -80,6 +87,13 @@ export default async function HomePage() {
             </Link>
           </Button>
         </EmptyState>
+      </Section>
+
+      <Section
+        title="Developer"
+        description="Tools and integrations you use."
+      >
+        <OpenRouterCard usage={openRouterUsage} />
       </Section>
     </>
   );
